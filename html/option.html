@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <title>無邊框視窗 · 設定</title>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="../css/option.css" rel="stylesheet" />
+  <script src="../js/common/constants.js"></script>
+  <script src="../js/common/functions.js"></script>
+  <script src="../js/option.js"></script>
+</head>
+
+<body>
+  <main class="panel">
+
+    <header class="panel-header">
+      <span class="eyebrow">無邊框視窗 · <span id="ext-version">v—</span></span>
+      <h1>設定</h1>
+      <p class="lede">調整彈出視窗的預設尺寸與行為。儲存後立即套用至右鍵選單。</p>
+    </header>
+
+    <!-- ─── Field 1: Dimensions ─────────────────────── -->
+    <section class="field-block">
+      <div class="field-head">
+        <label class="field-title" for="input-width">預設解析度</label>
+        <span class="field-desc">彈出視窗的寬與高，單位 px</span>
+      </div>
+      <div class="dim-row">
+        <div class="input-wrap">
+          <input type="number" id="input-width" min="1" step="1" autocomplete="off" />
+          <span class="input-suffix">寬 W</span>
+        </div>
+        <span class="dim-x">×</span>
+        <div class="input-wrap">
+          <input type="number" id="input-height" min="1" step="1" autocomplete="off" />
+          <span class="input-suffix">高 H</span>
+        </div>
+        <span class="ratio-tag" id="ratio-badge">16 : 9</span>
+      </div>
+      <div class="presets" id="presets">
+        <span class="presets-label">快速套用</span>
+        <button type="button" class="preset" data-w="1920" data-h="1080">1920 × 1080</button>
+        <button type="button" class="preset" data-w="1600" data-h="900">1600 × 900</button>
+        <button type="button" class="preset" data-w="1440" data-h="900">1440 × 900</button>
+        <button type="button" class="preset" data-w="1280" data-h="720">1280 × 720</button>
+        <button type="button" class="preset preset-screen" data-screen="1">目前螢幕</button>
+      </div>
+    </section>
+
+    <!-- ─── Field 2: Window State ───────────────────── -->
+    <section class="field-block">
+      <div class="field-head">
+        <span class="field-title">視窗狀態</span>
+        <span class="field-desc">彈出時的初始視窗狀態</span>
+      </div>
+      <div class="segmented" role="radiogroup" data-target="input-state">
+        <button type="button" class="seg" role="radio" data-value="normal">
+          <span class="seg-label">一般</span>
+          <span class="seg-sub">Normal</span>
+        </button>
+        <button type="button" class="seg" role="radio" data-value="maximized">
+          <span class="seg-label">最大化</span>
+          <span class="seg-sub">Maximized</span>
+        </button>
+      </div>
+      <input type="hidden" id="input-state" />
+    </section>
+
+    <!-- ─── Field 3: Open mode ──────────────────────── -->
+    <section class="field-block">
+      <div class="field-head">
+        <span class="field-title">開啟模式</span>
+        <span class="field-desc">按下右鍵選單時，如何處置當前分頁</span>
+      </div>
+      <div class="segmented quad" role="radiogroup" data-target="input-open-mode">
+        <button type="button" class="seg" role="radio" data-value="clone">
+          <span class="seg-label">複製</span>
+          <span class="seg-sub">當前分頁保留，連同瀏覽歷史再開一份</span>
+        </button>
+        <button type="button" class="seg" role="radio" data-value="move">
+          <span class="seg-label">搬移</span>
+          <span class="seg-sub">把當前分頁拉到新視窗</span>
+        </button>
+        <button type="button" class="seg" role="radio" data-value="new">
+          <span class="seg-label">重開</span>
+          <span class="seg-sub">當前分頁保留，用同網址另開（不帶歷史）</span>
+        </button>
+        <button type="button" class="seg" role="radio" data-value="pip">
+          <span class="seg-label">子母畫面 <span class="seg-flag">Beta</span></span>
+          <span class="seg-sub">置頂迷你視窗</span>
+        </button>
+      </div>
+      <p class="field-note">
+        <span class="warn">子母畫面（Beta）</span>：右鍵選單也有「子母畫面開啟（Beta）」入口。
+        <br>• <b>右鍵選單</b>一律直接開啟（右鍵動作本身就是頁面 user gesture）。
+        <br>• <b>擴充功能按鈕</b>需頁面有近期點擊紀錄才能直接開啟；冷頁面（剛載入未互動）會先顯示「點此啟動」浮窗，
+        點它才會啟動 PiP — 這是 Chrome 對 PiP 的安全限制，無法繞過。
+        <br>• <b>SPA 網站</b>（Google、Gmail 等）內容多由 JS 動態渲染，搬到 PiP 後因 CSP 安全限制無法執行，
+        可能空白或不完整 — 純文章類靜態頁（Wikipedia、MDN）效果最好。
+      </p>
+      <input type="hidden" id="input-open-mode" />
+    </section>
+
+    <!-- ─── Footer Actions ──────────────────────────── -->
+    <footer class="panel-footer">
+      <button id="btn-reset" type="button">還原預設</button>
+      <button id="btn-save" type="button">儲存設定</button>
+    </footer>
+
+  </main>
+</body>
+
+</html>

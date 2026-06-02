@@ -1,0 +1,56 @@
+{
+    "name": {
+        "message": "Borderless Window"
+    },
+    "description": {
+        "message": "Quickly open the current tab as a borderless popup window — no toolbar, no clutter."
+    },
+    "defaultTitle": {
+        "message": "Click button to open borderless window."
+    },
+    "unsupport": {
+        "message": "This page is not supported. Only http/https/file protocols are allowed."
+    },
+    "contextMenuModeClone": {
+        "message": "Clone tab"
+    },
+    "contextMenuModeMove": {
+        "message": "Move tab"
+    },
+    "contextMenuModeNew": {
+        "message": "Reopen (no history)"
+    },
+    "contextMenuClickPip": {
+        "message": "Picture-in-Picture (Beta)"
+    },
+    "contextMenuClickIncognito": {
+        "message": "Open in incognito window"
+    },
+    "contextMenuRestore": {
+        "message": "Move back to main window"
+    },
+    "optionSaved": {
+        "message": "Options saved"
+    },
+    "pipUnsupported": {
+        "message": "This browser doesn't support Picture-in-Picture. Falling back to borderless window."
+    },
+    "pipInjectBlocked": {
+        "message": "Picture-in-Picture isn't allowed on this page. Falling back to borderless window."
+    },
+    "pipBtnOpenNewTab": {
+        "message": "Open in new tab"
+    },
+    "pipBtnToPopup": {
+        "message": "Switch to borderless window"
+    },
+    "pipOpacityLabel": {
+        "message": "Dim content"
+    },
+    "pipBgToggleLabel": {
+        "message": "Toggle dim backdrop (white / black)"
+    },
+    "pipClickToStart": {
+        "message": "Click to start Picture-in-Picture"
+    }
+}

@@ -1,0 +1,56 @@
+{
+    "name": {
+        "message": "無邊框視窗"
+    },
+    "description": {
+        "message": "使用無邊框視窗開啟目前瀏覽的網頁"
+    },
+    "defaultTitle": {
+        "message": "點擊按鈕以開啟無邊框視窗"
+    },
+    "unsupport": {
+        "message": "不支援此網頁, 僅支援 http/https/file"
+    },
+    "contextMenuModeClone": {
+        "message": "複製分頁"
+    },
+    "contextMenuModeMove": {
+        "message": "搬移分頁"
+    },
+    "contextMenuModeNew": {
+        "message": "另開（不帶歷史）"
+    },
+    "contextMenuClickPip": {
+        "message": "子母畫面（Beta）"
+    },
+    "contextMenuClickIncognito": {
+        "message": "無痕視窗開啟"
+    },
+    "contextMenuRestore": {
+        "message": "搬回原視窗"
+    },
+    "optionSaved": {
+        "message": "設定已儲存"
+    },
+    "pipUnsupported": {
+        "message": "此瀏覽器不支援子母畫面，已改用無邊框視窗"
+    },
+    "pipInjectBlocked": {
+        "message": "此頁面無法開啟子母畫面，已改用無邊框視窗"
+    },
+    "pipBtnOpenNewTab": {
+        "message": "在新分頁開啟"
+    },
+    "pipBtnToPopup": {
+        "message": "轉成無邊框視窗"
+    },
+    "pipOpacityLabel": {
+        "message": "內容變淡"
+    },
+    "pipBgToggleLabel": {
+        "message": "切換變淡背景色（白／黑）"
+    },
+    "pipClickToStart": {
+        "message": "點此啟動子母畫面"
+    }
+}

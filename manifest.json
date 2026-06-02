@@ -1,0 +1,27 @@
+{
+    "default_locale": "zh_TW",
+    "manifest_version": 3,
+    "name": "__MSG_name__",
+    "version": "3.1.0",
+    "description": "__MSG_description__",
+    "icons": {
+        "128": "images/icon128.png"
+    },
+    "action": {
+        "default_icon": "images/icon128.png",
+        "default_title": "__MSG_defaultTitle__"
+    },
+    "background": {
+        "service_worker": "./js/Background.js"
+    },
+    "options_ui": {
+        "page": "./html/option.html"
+    },
+    "permissions": [
+        "activeTab",
+        "storage",
+        "contextMenus",
+        "notifications",
+        "scripting"
+    ]
+}
