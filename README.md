@@ -4,6 +4,17 @@ A lightweight Chrome extension (Manifest V3) that opens the current tab as a cle
 
 一款輕量的 Chrome 擴充功能（Manifest V3），可將目前分頁以乾淨的**無邊框視窗**開啟 —— 沒有工具列、沒有網址列、沒有干擾。
 
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/oldkbmmdbndonbiogadbbbmgdkdpjoae">
+    <img src="https://img.shields.io/chrome-web-store/v/oldkbmmdbndonbiogadbbbmgdkdpjoae?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white" alt="Chrome Web Store">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
+  </a>
+</p>
+
+> 🛒 **[Install from the Chrome Web Store / 從 Chrome 線上應用程式商店安裝](https://chromewebstore.google.com/detail/oldkbmmdbndonbiogadbbbmgdkdpjoae)**
+
 ---
 
 ## ✨ Features / 功能
@@ -27,6 +38,13 @@ Supported protocols: `http` / `https` / `file`.
 ---
 
 ## 🚀 Installation / 安裝
+
+### From the Chrome Web Store (recommended) / 從線上應用程式商店安裝（推薦）
+
+Install in one click — no developer mode required.
+一鍵安裝，免開啟開發者模式。
+
+👉 **https://chromewebstore.google.com/detail/oldkbmmdbndonbiogadbbbmgdkdpjoae**
 
 ### From source (developer mode) / 從原始碼載入（開發者模式）
 

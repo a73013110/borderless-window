@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 :: ── 設定區 ────────────────────────────────────────
-set ZIP_NAME=extension.zip
+set ZIP_NAME=borderless-window.zip
 set WORK_DIR=%~dp0
 
 echo 📦 開始打包 Chrome Extension...

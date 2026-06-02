@@ -4,7 +4,7 @@
 .idea/
 
 # ── 打包輸出 ──────────────────────────────
-extension.zip
+borderless-window.zip
 *.zip
 *.crx
 
@@ -19,3 +19,4 @@ extension.zip
 Thumbs.db
 desktop.ini
 .DS_Store
+
