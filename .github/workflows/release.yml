@@ -1,0 +1,42 @@
+name: Release
+
+# 推送形如 3.2.0 的 tag 時觸發
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write # 用於 GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1) 驗證 tag 與 manifest.json 版本一致，不一致直接 fail
+      - name: Verify version matches tag
+        run: |
+          MANIFEST_VERSION="$(jq -r '.version' manifest.json)"
+          echo "tag=$GITHUB_REF_NAME  manifest=$MANIFEST_VERSION"
+          if [ "$MANIFEST_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag ($GITHUB_REF_NAME) 與 manifest.json version ($MANIFEST_VERSION) 不一致"
+            exit 1
+          fi
+
+      # 2) 打包擴充功能（只收執行期需要的檔案）
+      - name: Build zip
+        run: |
+          zip -r "borderless-window-$GITHUB_REF_NAME.zip" \
+            manifest.json js css html images _locales LICENSE \
+            -x '*/jsconfig.json'
+
+      # 3) 建立 GitHub Release，並附上 zip
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Borderless Window ${{ github.ref_name }}
+          files: borderless-window-${{ github.ref_name }}.zip
+          generate_release_notes: true
