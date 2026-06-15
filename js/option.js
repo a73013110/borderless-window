@@ -1,5 +1,56 @@
 const $ = (id) => document.getElementById(id);
 
+/* ──────────────────────────────────────────────────────────
+   i18n — 預設依瀏覽器語言，亦可從頁面手動切換（方便測試）
+   chrome.i18n.getMessage 無法在執行期改語言，故手動切換時
+   直接 fetch 對應 _locales/<locale>/messages.json
+   ────────────────────────────────────────────────────────── */
+const SUPPORTED_LOCALES = ["en", "zh_TW"];
+const LANG_STORAGE_KEY = "uiLang";          // "auto" | "en" | "zh_TW"
+
+let i18nMessages = {};                        // 目前語言的訊息表
+let i18nFallback = {};                         // en 後備訊息表
+
+const t = (key) =>
+  i18nMessages[key]?.message ?? i18nFallback[key]?.message ?? "";
+
+const fetchLocaleMessages = async (locale) => {
+  try {
+    const url = chrome.runtime.getURL(`_locales/${locale}/messages.json`);
+    const res = await fetch(url);
+    return await res.json();
+  } catch {
+    return {};
+  }
+};
+
+const resolveLocale = (pref) => {
+  if (pref && pref !== "auto" && SUPPORTED_LOCALES.includes(pref)) return pref;
+  const ui = (chrome.i18n.getUILanguage?.() || "en").toLowerCase();
+  return ui.startsWith("zh") ? "zh_TW" : "en";
+};
+
+const applyI18n = () => {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const msg = t(el.dataset.i18n);
+    if (msg) el.textContent = msg;
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const msg = t(el.dataset.i18nHtml);
+    if (msg) el.innerHTML = msg;            // 來源為自家 locale 檔，非使用者輸入
+  });
+  const title = t("optTitle");
+  if (title) document.title = title;
+  document.documentElement.lang = t("htmlLang") || "zh-TW";
+};
+
+const loadAndApplyI18n = async (pref) => {
+  const locale = resolveLocale(pref);
+  i18nFallback = locale === "en" ? {} : await fetchLocaleMessages("en");
+  i18nMessages = await fetchLocaleMessages(locale);
+  applyI18n();
+};
+
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
 
 const formatRatio = (w, h) => {
@@ -29,7 +80,19 @@ const setupSegmented = (groupEl, hiddenInput) => {
   return apply;
 };
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
+  // 語言：先讀偏好套用，再綁定切換事件
+  const langSelect = $("select-lang");
+  const { [LANG_STORAGE_KEY]: storedLang } = await chrome.storage.local.get(LANG_STORAGE_KEY);
+  if (langSelect) langSelect.value = storedLang || "auto";
+  await loadAndApplyI18n(storedLang);
+  if (langSelect) {
+    langSelect.addEventListener("change", async () => {
+      await chrome.storage.local.set({ [LANG_STORAGE_KEY]: langSelect.value });
+      await loadAndApplyI18n(langSelect.value);
+    });
+  }
+
   const versionEl = $("ext-version");
   if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
 

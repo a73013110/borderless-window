@@ -52,5 +52,92 @@
     },
     "pipClickToStart": {
         "message": "Click to start Picture-in-Picture"
+    },
+    "htmlLang": {
+        "message": "en"
+    },
+    "optTitle": {
+        "message": "Borderless Window · Settings"
+    },
+    "optLanguage": {
+        "message": "Language"
+    },
+    "optLangAuto": {
+        "message": "Auto"
+    },
+    "optSettings": {
+        "message": "Settings"
+    },
+    "optLede": {
+        "message": "Adjust the popup window's default size and behavior. Applied to the right-click menu once you save."
+    },
+    "optResolution": {
+        "message": "Default resolution"
+    },
+    "optResolutionDesc": {
+        "message": "Popup window width and height, in px"
+    },
+    "optSuffixW": {
+        "message": "Width"
+    },
+    "optSuffixH": {
+        "message": "Height"
+    },
+    "optPresets": {
+        "message": "Quick apply"
+    },
+    "optCurrentScreen": {
+        "message": "Current screen"
+    },
+    "optWindowState": {
+        "message": "Window state"
+    },
+    "optWindowStateDesc": {
+        "message": "Initial window state when opened"
+    },
+    "optStateNormal": {
+        "message": "Normal"
+    },
+    "optStateMaximized": {
+        "message": "Maximized"
+    },
+    "optOpenMode": {
+        "message": "Open mode"
+    },
+    "optOpenModeDesc": {
+        "message": "What happens to the current tab from the right-click menu"
+    },
+    "optModeClone": {
+        "message": "Clone"
+    },
+    "optModeCloneDesc": {
+        "message": "Keep the current tab; open a copy (with history)"
+    },
+    "optModeMove": {
+        "message": "Move"
+    },
+    "optModeMoveDesc": {
+        "message": "Move the current tab to a new window"
+    },
+    "optModeNew": {
+        "message": "Reopen"
+    },
+    "optModeNewDesc": {
+        "message": "Keep the current tab; reopen the same URL (no history)"
+    },
+    "optModePip": {
+        "message": "Picture-in-Picture"
+    },
+    "optModePipDesc": {
+        "message": "Always-on-top mini window"
+    },
+    "optPipNote": {
+        "message": "<span class=\"warn\">Picture-in-Picture (Beta)</span>: the right-click menu also has an \"Open in Picture-in-Picture (Beta)\" entry.<br>• <b>Right-click menu</b> always opens directly (the right-click is itself a page user gesture).<br>• <b>Extension button</b> needs a recent click on the page to open directly; a cold page (just loaded, no interaction) first shows a \"Click to start\" overlay — clicking it starts PiP. This is Chrome's security restriction on PiP and cannot be bypassed.<br>• <b>SPA sites</b> (Google, Gmail, etc.) render most content via JS; once moved to PiP, CSP security restrictions block execution, so they may appear blank or incomplete — static article pages (Wikipedia, MDN) work best."
+    },
+    "optBtnReset": {
+        "message": "Restore defaults"
+    },
+    "optBtnSave": {
+        "message": "Save settings"
     }
 }

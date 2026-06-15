@@ -2,7 +2,7 @@
     "default_locale": "zh_TW",
     "manifest_version": 3,
     "name": "__MSG_name__",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "description": "__MSG_description__",
     "icons": {
         "128": "images/icon128.png"

@@ -66,6 +66,47 @@ body::before {
   border-bottom: 1px solid var(--line);
 }
 
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+/* ─── Language switcher ──────────────────────────────── */
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.lang-switch label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.lang-switch select {
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.lang-switch select:hover { border-color: var(--text-3); color: var(--text); }
+.lang-switch select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.lang-switch select option { background: var(--surface); color: var(--text); }
+
 .eyebrow {
   display: inline-block;
   font-family: 'IBM Plex Mono', monospace;
@@ -74,7 +115,6 @@ body::before {
   letter-spacing: 0.14em;
   color: var(--accent);
   text-transform: uppercase;
-  margin-bottom: 14px;
 }
 
 .panel-header h1 {

@@ -52,5 +52,92 @@
     },
     "pipClickToStart": {
         "message": "點此啟動子母畫面"
+    },
+    "htmlLang": {
+        "message": "zh-TW"
+    },
+    "optTitle": {
+        "message": "無邊框視窗 · 設定"
+    },
+    "optLanguage": {
+        "message": "語言"
+    },
+    "optLangAuto": {
+        "message": "自動"
+    },
+    "optSettings": {
+        "message": "設定"
+    },
+    "optLede": {
+        "message": "調整彈出視窗的預設尺寸與行為，儲存後立即套用至右鍵選單。"
+    },
+    "optResolution": {
+        "message": "預設解析度"
+    },
+    "optResolutionDesc": {
+        "message": "彈出視窗的寬與高，單位 px"
+    },
+    "optSuffixW": {
+        "message": "寬 W"
+    },
+    "optSuffixH": {
+        "message": "高 H"
+    },
+    "optPresets": {
+        "message": "快速套用"
+    },
+    "optCurrentScreen": {
+        "message": "目前螢幕"
+    },
+    "optWindowState": {
+        "message": "視窗狀態"
+    },
+    "optWindowStateDesc": {
+        "message": "彈出時的初始視窗狀態"
+    },
+    "optStateNormal": {
+        "message": "一般"
+    },
+    "optStateMaximized": {
+        "message": "最大化"
+    },
+    "optOpenMode": {
+        "message": "開啟模式"
+    },
+    "optOpenModeDesc": {
+        "message": "按右鍵選單時，如何處置當前分頁"
+    },
+    "optModeClone": {
+        "message": "複製"
+    },
+    "optModeCloneDesc": {
+        "message": "保留當前分頁，另開一份（含歷史）"
+    },
+    "optModeMove": {
+        "message": "搬移"
+    },
+    "optModeMoveDesc": {
+        "message": "把當前分頁移到新視窗"
+    },
+    "optModeNew": {
+        "message": "重開"
+    },
+    "optModeNewDesc": {
+        "message": "保留當前分頁，用同網址另開（不含歷史）"
+    },
+    "optModePip": {
+        "message": "子母畫面"
+    },
+    "optModePipDesc": {
+        "message": "置頂迷你視窗"
+    },
+    "optPipNote": {
+        "message": "<span class=\"warn\">子母畫面（Beta）</span>：右鍵選單也有「子母畫面開啟（Beta）」入口。<br>• <b>右鍵選單</b>一律直接開啟（右鍵動作本身就是頁面 user gesture）。<br>• <b>擴充功能按鈕</b>需頁面有近期點擊紀錄才能直接開啟；冷頁面（剛載入未互動）會先顯示「點此啟動」浮窗，點它才會啟動 PiP — 這是 Chrome 對 PiP 的安全限制，無法繞過。<br>• <b>SPA 網站</b>（Google、Gmail 等）內容多由 JS 動態渲染，搬到 PiP 後因 CSP 安全限制無法執行，可能空白或不完整 — 純文章類靜態頁（Wikipedia、MDN）效果最好。"
+    },
+    "optBtnReset": {
+        "message": "還原預設"
+    },
+    "optBtnSave": {
+        "message": "儲存設定"
     }
 }
