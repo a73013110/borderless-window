@@ -114,6 +114,84 @@
       <input type="hidden" id="input-open-mode" />
     </section>
 
+    <!-- ─── Field 4: Boss key (PiP panic cover) ─────── -->
+    <section class="field-block">
+      <div class="field-head">
+        <span class="field-title"><span data-i18n="optBossKey">老闆鍵</span> <span class="seg-flag">PiP</span></span>
+        <span class="field-desc" data-i18n="optBossKeyDesc">按下快捷鍵，子母畫面瞬間蓋上一層假工作畫面；再按一次掀開。</span>
+      </div>
+
+      <div class="segmented" role="radiogroup" data-target="input-bosskey-enabled">
+        <button type="button" class="seg" role="radio" data-value="on">
+          <span class="seg-label" data-i18n="optOn">開啟</span>
+          <span class="seg-sub" data-i18n="optBossKeyOnDesc">啟用快捷鍵遮罩</span>
+        </button>
+        <button type="button" class="seg" role="radio" data-value="off">
+          <span class="seg-label" data-i18n="optOff">關閉</span>
+          <span class="seg-sub" data-i18n="optBossKeyOffDesc">停用此功能</span>
+        </button>
+      </div>
+      <input type="hidden" id="input-bosskey-enabled" />
+
+      <div class="subfield">
+        <span class="sub-label" data-i18n="optPanicScreen">偽裝畫面</span>
+        <div class="segmented quad" role="radiogroup" data-target="input-panic-preset">
+          <button type="button" class="seg" role="radio" data-value="code">
+            <span class="seg-label" data-i18n="optPanicCode">程式碼</span>
+            <span class="seg-sub">Code</span>
+          </button>
+          <button type="button" class="seg" role="radio" data-value="sheet">
+            <span class="seg-label" data-i18n="optPanicSheet">試算表</span>
+            <span class="seg-sub">Sheet</span>
+          </button>
+          <button type="button" class="seg" role="radio" data-value="inbox">
+            <span class="seg-label" data-i18n="optPanicInbox">收件匣</span>
+            <span class="seg-sub">Inbox</span>
+          </button>
+          <button type="button" class="seg" role="radio" data-value="custom">
+            <span class="seg-label" data-i18n="optPanicCustom">自訂</span>
+            <span class="seg-sub">Image</span>
+          </button>
+        </div>
+        <input type="hidden" id="input-panic-preset" />
+      </div>
+
+      <div class="subfield" id="panic-image-row" hidden>
+        <span class="sub-label" data-i18n="optPanicImage">自訂圖片</span>
+        <div class="img-uploader">
+          <div class="img-preview" id="panic-preview"></div>
+          <div class="img-actions">
+            <div class="img-btn-row">
+              <label class="img-btn" for="panic-file" data-i18n="optPanicChoose">選擇圖片…</label>
+              <input type="file" id="panic-file" accept="image/png,image/jpeg,image/webp" hidden />
+              <button type="button" class="img-btn ghost" id="panic-clear" data-i18n="optPanicClear">清除</button>
+            </div>
+            <span class="img-hint" data-i18n="optPanicImageHint">建議橫向工作截圖；自動壓縮後存於本機（不同步、不上傳）。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="subfield">
+        <span class="sub-label" data-i18n="optPanicMute">觸發時靜音</span>
+        <div class="segmented" role="radiogroup" data-target="input-panic-mute">
+          <button type="button" class="seg" role="radio" data-value="on">
+            <span class="seg-label" data-i18n="optOn">開啟</span>
+            <span class="seg-sub" data-i18n="optPanicMuteOnDesc">遮罩時靜音，掀開時恢復</span>
+          </button>
+          <button type="button" class="seg" role="radio" data-value="off">
+            <span class="seg-label" data-i18n="optOff">關閉</span>
+            <span class="seg-sub" data-i18n="optPanicMuteOffDesc">維持原音量</span>
+          </button>
+        </div>
+        <input type="hidden" id="input-panic-mute" />
+      </div>
+
+      <p class="field-note" data-i18n-html="optBossKeyNote">
+        快捷鍵預設 <b>Alt+Q</b>，可自訂。<br>• 僅在 <b>Chrome 視窗有焦點</b>時有效——若你正盯著別的 App（Word、Slack…），快捷鍵不會觸發。
+      </p>
+      <button type="button" id="open-shortcuts" class="shortcut-btn" data-i18n="optOpenShortcuts">自訂快捷鍵 ↗</button>
+    </section>
+
     <!-- ─── Footer Actions ──────────────────────────── -->
     <footer class="panel-footer">
       <button id="btn-reset" type="button" data-i18n="optBtnReset">還原預設</button>

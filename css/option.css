@@ -339,6 +339,92 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════
+   BOSS KEY — sub-fields, image uploader, shortcut link
+   ═══════════════════════════════════════════════════════ */
+.subfield { margin-top: 16px; }
+.sub-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.img-uploader {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+.img-preview {
+  width: 160px;
+  height: 92px;
+  flex: none;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--surface) center / cover no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+.img-preview:not(.has-image)::after {
+  content: attr(data-empty-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.img-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.img-btn-row { display: flex; gap: 8px; }
+.img-btn {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  transition: all 0.15s ease;
+}
+.img-btn:hover { background: var(--accent-glow); }
+.img-btn.ghost {
+  border-color: var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+}
+.img-btn.ghost:hover { border-color: var(--text-3); color: var(--text); }
+.img-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+.shortcut-btn {
+  margin-top: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+}
+.shortcut-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ═══════════════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════════════ */
 .panel-footer {

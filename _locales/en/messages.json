@@ -145,5 +145,74 @@
     },
     "optBtnSave": {
         "message": "Save settings"
+    },
+    "cmdTogglePanic": {
+        "message": "Boss key: instantly mask the Picture-in-Picture with a fake work screen"
+    },
+    "optBossKey": {
+        "message": "Boss key"
+    },
+    "optBossKeyDesc": {
+        "message": "Press the shortcut to instantly cover the Picture-in-Picture with a fake work screen; press again to reveal."
+    },
+    "optOn": {
+        "message": "On"
+    },
+    "optOff": {
+        "message": "Off"
+    },
+    "optBossKeyOnDesc": {
+        "message": "Enable the shortcut cover"
+    },
+    "optBossKeyOffDesc": {
+        "message": "Disable this feature"
+    },
+    "optPanicScreen": {
+        "message": "Cover screen"
+    },
+    "optPanicCode": {
+        "message": "Code"
+    },
+    "optPanicSheet": {
+        "message": "Spreadsheet"
+    },
+    "optPanicInbox": {
+        "message": "Inbox"
+    },
+    "optPanicCustom": {
+        "message": "Custom"
+    },
+    "optPanicImage": {
+        "message": "Custom image"
+    },
+    "optPanicChoose": {
+        "message": "Choose image…"
+    },
+    "optPanicClear": {
+        "message": "Clear"
+    },
+    "optPanicImageHint": {
+        "message": "A landscape work screenshot works best; compressed and stored locally (not synced, not uploaded)."
+    },
+    "optPanicNoImage": {
+        "message": "No image selected"
+    },
+    "optPanicImageError": {
+        "message": "Couldn't read that image — try another"
+    },
+    "optPanicMute": {
+        "message": "Mute on trigger"
+    },
+    "optPanicMuteOnDesc": {
+        "message": "Mute while covered, restore on reveal"
+    },
+    "optPanicMuteOffDesc": {
+        "message": "Keep original volume"
+    },
+    "optBossKeyNote": {
+        "message": "Default shortcut <b>Alt+Q</b>, customizable.<br>• Only works while a <b>Chrome window is focused</b> — if you're looking at another app (Word, Slack…), the shortcut won't fire."
+    },
+    "optOpenShortcuts": {
+        "message": "Customize shortcut ↗"
     }
 }

@@ -1,5 +1,9 @@
 const $ = (id) => document.getElementById(id);
 
+// segmented on/off ↔ boolean（避免各處重複 ? "on" : "off" 與 !== "off" 的方向錯誤）
+const toSeg = (b) => (b ? "on" : "off");
+const fromSeg = (v) => v !== "off";
+
 /* ──────────────────────────────────────────────────────────
    i18n — 預設依瀏覽器語言，亦可從頁面手動切換（方便測試）
    chrome.i18n.getMessage 無法在執行期改語言，故手動切換時
@@ -106,6 +110,59 @@ window.addEventListener("DOMContentLoaded", async () => {
   const applyState = setupSegmented(stateGroup, stateInput);
   const applyOpenMode = setupSegmented(openModeGroup, openModeInput);
 
+  // ─── 老闆鍵設定 ───
+  const bossEnabledInput = $("input-bosskey-enabled");
+  const panicPresetInput = $("input-panic-preset");
+  const panicMuteInput = $("input-panic-mute");
+  const applyBossEnabled = setupSegmented(
+    document.querySelector('.segmented[data-target="input-bosskey-enabled"]'), bossEnabledInput);
+  const applyPanicPreset = setupSegmented(
+    document.querySelector('.segmented[data-target="input-panic-preset"]'), panicPresetInput);
+  const applyPanicMute = setupSegmented(
+    document.querySelector('.segmented[data-target="input-panic-mute"]'), panicMuteInput);
+
+  const imageRow = $("panic-image-row");
+  const preview = $("panic-preview");
+  const fileInput = $("panic-file");
+  // 目前選定的自訂圖（壓縮後 data URL）；存於記憶體，按「儲存」才寫入 storage.local
+  let panicImageData = "";
+
+  const setPreview = (dataUrl) => {
+    panicImageData = dataUrl || "";
+    if (panicImageData) {
+      preview.style.backgroundImage = `url("${panicImageData}")`;
+      preview.classList.add("has-image");
+    } else {
+      preview.style.backgroundImage = "";
+      preview.classList.remove("has-image");
+    }
+  };
+  const refreshImageRow = () => {
+    imageRow.hidden = panicPresetInput.value !== "custom";
+  };
+  // 偽裝畫面切到/離開 custom 時，顯示/隱藏圖片上傳區
+  panicPresetInput.addEventListener("change", refreshImageRow);
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    try {
+      setPreview(await compressImage(file));
+    } catch {
+      notify(t("optPanicImageError") || "Image load failed");
+    }
+    fileInput.value = ""; // 允許重新選同一檔
+  });
+  $("panic-clear").addEventListener("click", () => setPreview(""));
+
+  // 開啟 Chrome 快捷鍵設定頁（無法用 <a> 直連 chrome://，改用 tabs.create）
+  $("open-shortcuts").addEventListener("click", () => {
+    chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+  });
+
+  // 預覽空狀態文案（attr 給 CSS ::after 用）
+  preview.dataset.emptyLabel = t("optPanicNoImage") || "No image";
+
   const onDimChange = () => updateRatio(widthInput.value, heightInput.value);
   widthInput.addEventListener("input", onDimChange);
   heightInput.addEventListener("input", onDimChange);
@@ -127,17 +184,29 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   restoreOptions(widthInput, heightInput, applyState, applyOpenMode);
+  restoreBossKey({ applyBossEnabled, applyPanicPreset, applyPanicMute, setPreview, refreshImageRow });
 
-  $("btn-save").addEventListener("click", () => {
+  const collectBossKey = () => ({
+    pipBossKeyEnabled: fromSeg(bossEnabledInput.value),
+    pipPanicPreset: PANIC_PRESETS.includes(panicPresetInput.value) ? panicPresetInput.value : DEFAULT_PANIC_PRESET,
+    pipPanicMute: fromSeg(panicMuteInput.value),
+    pipPanicImage: panicImageData
+  });
+
+  $("btn-save").addEventListener("click", async () => {
+    await chrome.storage.local.set(collectBossKey());
     saveOptions(widthInput.value, heightInput.value, stateInput.value, openModeInput.value);
   });
 
-  $("btn-reset").addEventListener("click", () => {
+  $("btn-reset").addEventListener("click", async () => {
     widthInput.value = DEFAULT_WINDOW_SIZE.width;
     heightInput.value = DEFAULT_WINDOW_SIZE.height;
     applyState(DEFAULT_WINDOW_STATE);
     applyOpenMode(DEFAULT_OPEN_MODE);
     updateRatio(widthInput.value, heightInput.value);
+    // 老闆鍵：寫回預設後，用同一條 restore 路徑重繪 UI（避免兩處套用邏輯漂移）
+    await chrome.storage.local.set({ ...BOSS_KEY_DEFAULTS });
+    await restoreBossKey({ applyBossEnabled, applyPanicPreset, applyPanicMute, setPreview, refreshImageRow });
     saveOptions(DEFAULT_WINDOW_SIZE.width, DEFAULT_WINDOW_SIZE.height, DEFAULT_WINDOW_STATE, DEFAULT_OPEN_MODE);
   });
 
@@ -170,3 +239,40 @@ const saveOptions = async (width, height, state, openMode) => {
   });
   notify(getMessage("optionSaved"));
 };
+
+// 老闆鍵設定存於 storage.local（圖片過大，sync 放不下）
+const restoreBossKey = async ({ applyBossEnabled, applyPanicPreset, applyPanicMute, setPreview, refreshImageRow }) => {
+  const s = await chrome.storage.local.get(BOSS_KEY_DEFAULTS);
+  applyBossEnabled(toSeg(s.pipBossKeyEnabled !== false));
+  applyPanicPreset(PANIC_PRESETS.includes(s.pipPanicPreset) ? s.pipPanicPreset : DEFAULT_PANIC_PRESET);
+  applyPanicMute(toSeg(s.pipPanicMute !== false));
+  setPreview(typeof s.pipPanicImage === "string" ? s.pipPanicImage : "");
+  refreshImageRow();
+};
+
+// 上傳圖壓縮：最長邊縮到 MAX、輸出 JPEG，控制 storage.local 佔用與套用速度
+const PANIC_IMAGE_MAX_EDGE = 1600;
+const PANIC_IMAGE_QUALITY = 0.85;
+const compressImage = (file) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, PANIC_IMAGE_MAX_EDGE / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
+        resolve(canvas.toDataURL("image/jpeg", PANIC_IMAGE_QUALITY));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("decode failed")); };
+    img.src = url;
+  });

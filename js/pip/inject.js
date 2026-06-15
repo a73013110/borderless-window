@@ -39,6 +39,11 @@
   const BG_PRESETS = ["#ffffff", "#000000"];
   const DEFAULT_BG = BG_PRESETS[0];
 
+  // ─── 老闆鍵（panic 遮罩） ───
+  // 與 constants.js 同步；inject.js 為獨立注入腳本不 import，故在此重列。
+  const PANIC_PRESETS = ["code", "sheet", "inbox", "custom"];
+  const DEFAULT_PANIC_PRESET = "code";
+
   const ICONS = {
     newTab:  '<svg viewBox="0 0 16 16"><path d="M9 2 H14 V7 M14 2 L8 8 M14 9 V14 H2 V2 H7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     popup:   '<svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M2 6 H14" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>',
@@ -235,10 +240,19 @@
   }
 
   async function readContentSettings() {
-    const opts = await storageGet("local", ["pipOpacity", "pipBgColor"]);
+    const opts = await storageGet("local", [
+      "pipOpacity", "pipBgColor",
+      "pipBossKeyEnabled", "pipPanicPreset", "pipPanicMute", "pipPanicImage"
+    ]);
     return {
       opacity: typeof opts.pipOpacity === "number" ? opts.pipOpacity : DEFAULT_OPACITY,
-      bgColor: typeof opts.pipBgColor === "string" ? opts.pipBgColor : DEFAULT_BG
+      bgColor: typeof opts.pipBgColor === "string" ? opts.pipBgColor : DEFAULT_BG,
+      panic: {
+        enabled: opts.pipBossKeyEnabled !== false, // 預設開
+        preset: PANIC_PRESETS.includes(opts.pipPanicPreset) ? opts.pipPanicPreset : DEFAULT_PANIC_PRESET,
+        mute: opts.pipPanicMute !== false,          // 預設靜音
+        image: typeof opts.pipPanicImage === "string" ? opts.pipPanicImage : ""
+      }
     };
   }
 
@@ -323,21 +337,56 @@
     let toolbarHost = null;
     let restored = false;
 
+    // ─── 老闆鍵狀態（須早於 restore 宣告，供其清理） ───
+    const panicCfg = content.panic;
+    let panicHost = null;
+    let mutedEls = [];
+    const setMuted = (on) => {
+      if (on) {
+        mutedEls = [];
+        pip.document.querySelectorAll("video, audio").forEach((m) => {
+          if (!m.muted) { mutedEls.push(m); m.muted = true; }
+        });
+      } else {
+        mutedEls.forEach((m) => { try { m.muted = false; } catch {} });
+        mutedEls = [];
+      }
+    };
+    const hidePanic = () => {
+      if (!panicHost) return;
+      panicHost.remove();
+      panicHost = null;
+      setMuted(false);
+    };
+    const showPanic = () => {
+      if (panicHost) return;
+      panicHost = createPanicHost(pip, panicCfg);
+      pip.document.documentElement.appendChild(panicHost); // 疊在最上（含 toolbar）
+      if (panicCfg.mute) setMuted(true);
+    };
+    const togglePanic = () => {
+      if (!panicCfg.enabled) return;
+      panicHost ? hidePanic() : showPanic();
+    };
+
     // 必須早於任何 await：使用者可能在 setup 完成前就手動關閉 PiP
     const restore = () => {
       if (restored) return;
       restored = true;
+      hidePanic();
       toolbarHost?.remove();
       if (placeholder.parentNode) placeholder.replaceWith(target);
       target.style.opacity = "";
       if (window[STATE_KEY]?.kind === "pip") window[STATE_KEY] = null;
+      sendBg({ type: "pipClosed" });
     };
     pip.addEventListener("pagehide", restore, { once: true });
     pip.addEventListener("unload", restore, { once: true });
 
     window[STATE_KEY] = {
       kind: "pip",
-      dismiss: () => { restore(); try { pip.close(); } catch {} }
+      dismiss: () => { restore(); try { pip.close(); } catch {} },
+      togglePanic
     };
 
     try {
@@ -365,6 +414,9 @@
       pip.addEventListener("resize", debounce(() => {
         sendBg({ type: "pipResized", width: pip.innerWidth, height: pip.innerHeight });
       }, RESIZE_DEBOUNCE_MS));
+
+      // 告知 background 目前 PiP 所在分頁，老闆鍵快捷鍵才打得到
+      sendBg({ type: "pipOpened" });
     } catch (e) {
       console.error("[PiP] setup failed", e);
       sendBg({ type: "notify", key: "pipInjectBlocked" });
@@ -545,6 +597,227 @@
     slider.addEventListener("lostpointercapture", stop);
 
     return { el: slider, isDragging: () => dragging };
+  }
+
+  // ─── 老闆鍵：假工作畫面遮罩 ───────────────────────────────────────
+  // 全包在 closed Shadow DOM，蓋滿整個 PiP（含 toolbar），z-index 最大。
+  // 純靜態 HTML/CSS、不抓外部資源，避免撞站台 CSP。
+  const PANIC_MONO = "'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace";
+  const PANIC_SANS = "-apple-system, system-ui, 'Segoe UI', Roboto, 'Noto Sans', sans-serif";
+  // 每個假畫面 Shadow DOM 共用的樣式重置
+  const PANIC_RESET = ":host{all:initial}*{margin:0;box-sizing:border-box}";
+
+  function createPanicHost(pip, cfg) {
+    const doc = pip.document;
+    const host = doc.createElement("newtab-pip-boss");
+    host.style.cssText = HOST_STYLE +
+      "; inset: 0 !important; width: 100% !important; height: 100% !important";
+    const shadow = host.attachShadow({ mode: "closed" });
+    renderPanic(shadow, cfg, cfg.preset);
+    return host;
+  }
+
+  // 渲染指定 preset；custom 圖片載入失敗時自動退回 code，絕不露出底下真實內容
+  function renderPanic(shadow, cfg, preset) {
+    if (preset === "custom" && cfg.image) {
+      shadow.innerHTML =
+        `<style>${PANIC_RESET}
+         .bossimg{width:100vw;height:100vh;object-fit:cover;display:block;background:#1e1e1e}</style>
+         <img class="bossimg" alt="">`;
+      const img = shadow.querySelector(".bossimg");
+      img.onerror = () => renderPanic(shadow, cfg, "code");
+      img.src = cfg.image;
+      return;
+    }
+    shadow.innerHTML =
+      preset === "sheet" ? buildSheet() :
+      preset === "inbox" ? buildInbox() :
+      buildCode();
+  }
+
+  // VS Code 風（預設）
+  function buildCode() {
+    const code = [
+      `<span class="c">// Aggregate quarterly metrics for the finance dashboard</span>`,
+      `<span class="k">import</span> { <span class="t">HttpClient</span> } <span class="k">from</span> <span class="s">'@angular/common/http'</span>;`,
+      `<span class="k">import</span> { <span class="t">Observable</span> } <span class="k">from</span> <span class="s">'rxjs'</span>;`,
+      ``,
+      `<span class="k">export class</span> <span class="t">ReportService</span> {`,
+      `&nbsp;&nbsp;<span class="k">private readonly</span> api = <span class="s">'/api/v2/reports'</span>;`,
+      ``,
+      `&nbsp;&nbsp;<span class="k">constructor</span>(<span class="k">private</span> http: <span class="t">HttpClient</span>) {}`,
+      ``,
+      `&nbsp;&nbsp;<span class="f">fetchQuarter</span>(q: <span class="t">number</span>): <span class="t">Observable</span>&lt;<span class="t">Report</span>&gt; {`,
+      `&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">return</span> <span class="k">this</span>.http.<span class="f">get</span>&lt;<span class="t">Report</span>&gt;(<span class="s">\`\${this.api}/q\${q}\`</span>);`,
+      `&nbsp;&nbsp;}`,
+      ``,
+      `&nbsp;&nbsp;<span class="f">summarize</span>(rows: <span class="t">Row</span>[]): <span class="t">number</span> {`,
+      `&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">return</span> rows.<span class="f">reduce</span>((acc, r) =&gt; acc + r.total, <span class="n">0</span>);`,
+      `&nbsp;&nbsp;}`,
+      `}`
+    ];
+    const gutter = code.map((_, i) => `<div>${i + 1}</div>`).join("");
+    const lines = code.map((l) => `<div class="ln">${l || "&nbsp;"}</div>`).join("");
+    return `<style>
+      ${PANIC_RESET}
+      .wrap{width:100vw;height:100vh;display:flex;flex-direction:column;
+        background:#1e1e1e;color:#d4d4d4;font-family:${PANIC_MONO};font-size:13px;overflow:hidden}
+      .tabs{height:35px;flex:none;display:flex;align-items:stretch;background:#252526;border-bottom:1px solid #1a1a1a}
+      .tab{display:flex;align-items:center;gap:8px;padding:0 14px;background:#1e1e1e;color:#fff;font-size:12px;border-right:1px solid #1a1a1a}
+      .tab .dot{width:8px;height:8px;border-radius:50%;background:#e2c08d}
+      .tab.inactive{background:#2d2d2d;color:#8a8a8a}
+      .tab.inactive .dot{background:transparent}
+      .body{flex:1;display:flex;min-height:0}
+      .activity{width:48px;flex:none;background:#333;display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:14px}
+      .activity i{width:22px;height:22px;border-radius:4px;background:rgba(255,255,255,.18)}
+      .activity i:first-child{background:rgba(255,255,255,.55)}
+      .explorer{width:210px;flex:none;background:#252526;padding:10px 0;font-size:12px;color:#bbb}
+      .explorer .title{padding:2px 16px 8px;color:#8a8a8a;text-transform:uppercase;font-size:10px;letter-spacing:.08em}
+      .explorer .row{padding:3px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .explorer .row.active{background:#37373d;color:#fff}
+      .explorer .row.indent{padding-left:30px}
+      .editor{flex:1;display:flex;min-width:0;overflow:hidden;padding-top:6px}
+      .gutter{flex:none;text-align:right;color:#6e7681;padding:0 14px 0 18px;user-select:none}
+      .gutter div,.code .ln{line-height:20px;height:20px}
+      .code{flex:1;min-width:0;white-space:pre;overflow:hidden}
+      .status{height:22px;flex:none;background:#007acc;color:#fff;display:flex;align-items:center;gap:16px;padding:0 12px;font-size:11px}
+      .status .sp{margin-left:auto}
+      .k{color:#569cd6}.s{color:#ce9178}.f{color:#dcdcaa}.c{color:#6a9955}.t{color:#4ec9b0}.n{color:#b5cea8}
+    </style>
+    <div class="wrap">
+      <div class="tabs">
+        <div class="tab"><span class="dot"></span>report.service.ts</div>
+        <div class="tab inactive"><span class="dot"></span>dashboard.component.ts</div>
+      </div>
+      <div class="body">
+        <div class="activity"><i></i><i></i><i></i><i></i></div>
+        <div class="explorer">
+          <div class="title">Explorer · finance-app</div>
+          <div class="row">▾ src</div>
+          <div class="row indent">▾ services</div>
+          <div class="row indent active">&nbsp;&nbsp;report.service.ts</div>
+          <div class="row indent">&nbsp;&nbsp;auth.service.ts</div>
+          <div class="row indent">▸ components</div>
+          <div class="row">▸ shared</div>
+          <div class="row">package.json</div>
+          <div class="row">tsconfig.json</div>
+        </div>
+        <div class="editor">
+          <div class="gutter">${gutter}</div>
+          <div class="code">${lines}</div>
+        </div>
+      </div>
+      <div class="status"><span>main*</span><span>TypeScript</span><span>UTF-8</span><span class="sp">Ln 14, Col 38</span><span>Prettier</span></div>
+    </div>`;
+  }
+
+  // 試算表風
+  function buildSheet() {
+    const cols = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const headers = ["Region", "Q1", "Q2", "Q3", "Q4", "Total", "YoY %", ""];
+    const rows = [
+      ["North", "182,400", "196,210", "201,880", "224,500", "804,990", "+12.4%"],
+      ["South", "143,900", "151,300", "148,720", "163,440", "607,360", "+8.1%"],
+      ["East", "98,250", "104,600", "112,330", "120,910", "436,090", "+15.2%"],
+      ["West", "211,770", "205,140", "219,600", "238,020", "874,530", "+9.7%"],
+      ["EMEA", "176,300", "182,950", "190,120", "199,880", "749,250", "+11.0%"],
+      ["APAC", "134,610", "148,200", "159,400", "171,260", "613,470", "+18.3%"]
+    ];
+    const colHead = `<th class="corner"></th>` + cols.map((c) => `<th>${c}</th>`).join("");
+    const headRow = `<tr><td class="rh">1</td>` +
+      headers.map((h, i) => `<td class="hd${i === 0 ? " active" : ""}">${h}</td>`).join("") + `</tr>`;
+    const body = rows.map((r, ri) => {
+      const cells = [r[0], ...r.slice(1), ""].slice(0, 8)
+        .map((v, ci) => `<td class="${ci === 0 ? "lbl" : "num"}">${v ?? ""}</td>`).join("");
+      return `<tr><td class="rh">${ri + 2}</td>${cells}</tr>`;
+    }).join("");
+    const fillers = Array.from({ length: 14 }, (_, i) =>
+      `<tr><td class="rh">${i + 8}</td>` + cols.map(() => `<td class="num"></td>`).join("") + `</tr>`).join("");
+    return `<style>
+      ${PANIC_RESET}
+      .wrap{width:100vw;height:100vh;display:flex;flex-direction:column;background:#fff;color:#222;font-family:${PANIC_SANS};font-size:12px;overflow:hidden}
+      .ribbon{height:30px;flex:none;background:#217346;color:#fff;display:flex;align-items:center;gap:18px;padding:0 14px;font-size:12px}
+      .ribbon b{font-weight:600}.ribbon .m{opacity:.85}
+      .fbar{height:24px;flex:none;display:flex;align-items:center;gap:8px;border-bottom:1px solid #d0d0d0;padding:0 8px;color:#555}
+      .fbar .nm{font-family:${PANIC_MONO};border:1px solid #d0d0d0;border-radius:2px;padding:1px 8px;min-width:54px}
+      .fbar .fx{color:#999;font-style:italic}
+      .grid{flex:1;overflow:hidden}
+      table{border-collapse:collapse;width:100%;table-layout:fixed}
+      th,td{border:1px solid #e0e0e0;height:21px;padding:0 6px;text-align:right;white-space:nowrap;overflow:hidden}
+      th{background:#f3f3f3;color:#777;text-align:center;font-weight:500;height:19px}
+      th.corner,td.rh{background:#f3f3f3;color:#777;text-align:center;width:34px}
+      td.hd{font-weight:600;text-align:center;background:#fafafa;color:#333}
+      td.hd.active{outline:2px solid #217346;outline-offset:-2px}
+      td.lbl{text-align:left;font-weight:500}
+      td.num{font-family:${PANIC_MONO};color:#333}
+      .tabs{height:24px;flex:none;display:flex;align-items:center;gap:2px;border-top:1px solid #d0d0d0;background:#f3f3f3;padding:0 8px;color:#555}
+      .tabs .t{padding:2px 12px;font-size:11px}.tabs .t.active{background:#fff;border:1px solid #d0d0d0;border-bottom:none;font-weight:600;color:#217346}
+    </style>
+    <div class="wrap">
+      <div class="ribbon"><b>Q4_Revenue_Report.xlsx</b><span class="m">Home</span><span class="m">Insert</span><span class="m">Formulas</span><span class="m">Data</span><span class="m">Review</span></div>
+      <div class="fbar"><span class="nm">F6</span><span>fx</span><span class="fx">=SUM(B6:E6)</span></div>
+      <div class="grid"><table>
+        <thead><tr>${colHead}</tr></thead>
+        <tbody>${headRow}${body}${fillers}</tbody>
+      </table></div>
+      <div class="tabs"><span class="t active">Summary</span><span class="t">Regions</span><span class="t">Raw</span><span class="t">+</span></div>
+    </div>`;
+  }
+
+  // 收件匣風
+  function buildInbox() {
+    const mails = [
+      ["Finance Ops", "Q4 budget review — action needed before Fri", "9:42 AM", true],
+      ["Jira", "[FIN-2841] assigned to you: reconcile ledger", "9:15 AM", true],
+      ["Sarah Chen", "Re: Dashboard rollout timeline", "8:58 AM", false],
+      ["IT Helpdesk", "Scheduled maintenance this weekend", "8:30 AM", false],
+      ["Confluence", "3 pages updated in ‘Finance’ space", "Yesterday", false],
+      ["Marcus L.", "Notes from the planning sync", "Yesterday", false],
+      ["HR", "Reminder: submit your timesheet", "Mon", false],
+      ["GitHub", "[finance-app] PR #214 ready for review", "Mon", false]
+    ];
+    const list = mails.map((m, i) => `
+      <div class="mail${i === 0 ? " active" : ""}${m[3] ? " unread" : ""}">
+        <div class="av">${m[0].charAt(0)}</div>
+        <div class="meta">
+          <div class="top"><span class="from">${m[0]}</span><span class="time">${m[2]}</span></div>
+          <div class="subj">${m[1]}</div>
+        </div>
+      </div>`).join("");
+    return `<style>
+      ${PANIC_RESET}
+      .wrap{width:100vw;height:100vh;display:flex;background:#fff;color:#202124;font-family:${PANIC_SANS};font-size:13px;overflow:hidden}
+      .side{width:200px;flex:none;background:#f6f8fc;padding:16px 8px;color:#3c4043}
+      .compose{background:#c2e7ff;color:#001d35;border-radius:16px;padding:10px 16px;font-weight:600;font-size:13px;display:inline-block;margin:0 8px 14px}
+      .fold{padding:7px 16px;border-radius:0 16px 16px 0;white-space:nowrap}
+      .fold.active{background:#d3e3fd;color:#001d35;font-weight:600}
+      .fold .c{float:right;color:#5f6368;font-weight:400}
+      .list{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #e8eaed}
+      .lhead{height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid #e8eaed;color:#5f6368;font-size:13px}
+      .lhead b{color:#202124}
+      .mail{display:flex;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f3f4;align-items:center}
+      .mail.active{background:#f2f6fc}
+      .mail.unread .from,.mail.unread .subj{font-weight:700;color:#202124}
+      .av{width:32px;height:32px;flex:none;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+      .meta{min-width:0;flex:1}
+      .top{display:flex;justify-content:space-between;gap:8px}
+      .from{color:#202124}.time{color:#5f6368;font-size:12px;flex:none}
+      .subj{color:#5f6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    </style>
+    <div class="wrap">
+      <div class="side">
+        <div class="compose">✚ Compose</div>
+        <div class="fold active">Inbox <span class="c">24</span></div>
+        <div class="fold">Starred</div>
+        <div class="fold">Sent</div>
+        <div class="fold">Drafts <span class="c">3</span></div>
+        <div class="fold">Important</div>
+      </div>
+      <div class="list">
+        <div class="lhead"><b>Inbox</b><span>1–8 of 24</span></div>
+        ${list}
+      </div>
+    </div>`;
   }
 
   // ─── Prompt（無 user activation 時的點擊提示） ───────────────────

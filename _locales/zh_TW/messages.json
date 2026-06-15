@@ -145,5 +145,74 @@
     },
     "optBtnSave": {
         "message": "儲存設定"
+    },
+    "cmdTogglePanic": {
+        "message": "老闆鍵：子母畫面瞬間切換假工作畫面"
+    },
+    "optBossKey": {
+        "message": "老闆鍵"
+    },
+    "optBossKeyDesc": {
+        "message": "按下快捷鍵，子母畫面瞬間蓋上一層假工作畫面；再按一次掀開。"
+    },
+    "optOn": {
+        "message": "開啟"
+    },
+    "optOff": {
+        "message": "關閉"
+    },
+    "optBossKeyOnDesc": {
+        "message": "啟用快捷鍵遮罩"
+    },
+    "optBossKeyOffDesc": {
+        "message": "停用此功能"
+    },
+    "optPanicScreen": {
+        "message": "偽裝畫面"
+    },
+    "optPanicCode": {
+        "message": "程式碼"
+    },
+    "optPanicSheet": {
+        "message": "試算表"
+    },
+    "optPanicInbox": {
+        "message": "收件匣"
+    },
+    "optPanicCustom": {
+        "message": "自訂"
+    },
+    "optPanicImage": {
+        "message": "自訂圖片"
+    },
+    "optPanicChoose": {
+        "message": "選擇圖片…"
+    },
+    "optPanicClear": {
+        "message": "清除"
+    },
+    "optPanicImageHint": {
+        "message": "建議橫向工作截圖；自動壓縮後存於本機（不同步、不上傳）。"
+    },
+    "optPanicNoImage": {
+        "message": "尚未選擇圖片"
+    },
+    "optPanicImageError": {
+        "message": "圖片讀取失敗，請換一張"
+    },
+    "optPanicMute": {
+        "message": "觸發時靜音"
+    },
+    "optPanicMuteOnDesc": {
+        "message": "遮罩時靜音，掀開時恢復"
+    },
+    "optPanicMuteOffDesc": {
+        "message": "維持原音量"
+    },
+    "optBossKeyNote": {
+        "message": "快捷鍵預設 <b>Alt+Q</b>，可自訂。<br>• 僅在 <b>Chrome 視窗有焦點</b>時有效——若你正盯著別的 App（Word、Slack…），快捷鍵不會觸發。"
+    },
+    "optOpenShortcuts": {
+        "message": "自訂快捷鍵 ↗"
     }
 }

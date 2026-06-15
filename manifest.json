@@ -2,7 +2,7 @@
     "default_locale": "zh_TW",
     "manifest_version": 3,
     "name": "__MSG_name__",
-    "version": "3.2.0",
+    "version": "3.3.0",
     "description": "__MSG_description__",
     "icons": {
         "128": "images/icon128.png"
@@ -13,6 +13,14 @@
     },
     "background": {
         "service_worker": "./js/Background.js"
+    },
+    "commands": {
+        "toggle-panic": {
+            "suggested_key": {
+                "default": "Alt+Q"
+            },
+            "description": "__MSG_cmdTogglePanic__"
+        }
     },
     "options_ui": {
         "page": "./html/option.html"

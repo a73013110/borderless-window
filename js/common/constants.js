@@ -21,3 +21,18 @@ const STORAGE_DEFAULTS = {
 };
 // session 儲存：本擴充功能建立的 windowId 清單
 const SESSION_KEY_OUR_WINDOWS = "ourWindowIds";
+// session 儲存：目前開著 PiP 的 tabId（老闆鍵快捷鍵要打到正確分頁）
+const SESSION_KEY_PIP_TAB = "pipTabId";
+
+// ─── 老闆鍵（PiP panic 遮罩） ───
+// 全存在 storage.local：圖片可能上看數百 KB，storage.sync 單項僅 8KB 放不下。
+const PANIC_PRESETS = ["code", "sheet", "inbox", "custom"];
+const DEFAULT_PANIC_PRESET = "code";
+const BOSS_KEY_DEFAULTS = {
+  pipBossKeyEnabled: true,
+  pipPanicPreset: DEFAULT_PANIC_PRESET, // code | sheet | inbox | custom
+  pipPanicMute: true,                   // 觸發時是否靜音 PiP 內影音
+  pipPanicImage: ""                     // preset = custom 時的壓縮後 data URL
+};
+// 老闆鍵快捷鍵的 command 名稱（manifest commands）
+const COMMAND_TOGGLE_PANIC = "toggle-panic";

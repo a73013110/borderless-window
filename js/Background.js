@@ -42,6 +42,24 @@ chrome.runtime.onInstalled.addListener(() => {
 // ─── 觸發來源：擴充功能按鈕 ───
 chrome.action.onClicked.addListener((tab) => dispatchOpen(tab));
 
+// ─── 觸發來源：老闆鍵快捷鍵（Alt+Q 等，可於 chrome://extensions/shortcuts 改） ───
+// 對「擁有目前 PiP 的分頁」執行 togglePanic。executeScript 與 inject.js 同一個
+// isolated world，故能直接讀到 inject.js 掛在頁面 window 上的 __pipState。
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== COMMAND_TOGGLE_PANIC) return;
+  const tabId = await getPipTabId();
+  if (tabId == null) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => window.__pipState?.togglePanic?.()
+    });
+  } catch {
+    // 分頁已關或無法注入 → 清掉追蹤
+    await clearPipTabId();
+  }
+});
+
 // ─── 觸發來源：右鍵選單 ───
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === CONTEXT_MENU_RESTORE_ID) {
@@ -123,6 +141,12 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       return;
     case "pipToPopup":
       if (tabId != null) openPopup({ tabId });
+      return;
+    case "pipOpened":
+      if (tabId != null) setPipTabId(tabId);
+      return;
+    case "pipClosed":
+      if (tabId != null) clearPipTabId(tabId);
       return;
     case "pipOpenInNewTab":
       if (msg.url) chrome.tabs.create({ url: msg.url });
@@ -258,3 +282,24 @@ const isOurWindow = async (id) => {
     await chrome.storage.session.get(SESSION_KEY_OUR_WINDOWS);
   return ids.includes(id);
 };
+
+// ─── 追蹤目前開著 PiP 的分頁（老闆鍵快捷鍵的目標） ───
+const getPipTabId = async () => {
+  const { [SESSION_KEY_PIP_TAB]: id } =
+    await chrome.storage.session.get(SESSION_KEY_PIP_TAB);
+  return typeof id === "number" ? id : null;
+};
+
+const setPipTabId = (id) =>
+  chrome.storage.session.set({ [SESSION_KEY_PIP_TAB]: id });
+
+// 帶 id 則僅在相符時清除（避免清掉之後另一分頁開的 PiP）；不帶則無條件清除
+const clearPipTabId = async (id) => {
+  if (id == null) return chrome.storage.session.remove(SESSION_KEY_PIP_TAB);
+  if ((await getPipTabId()) === id) {
+    return chrome.storage.session.remove(SESSION_KEY_PIP_TAB);
+  }
+};
+
+// 分頁關閉時，若它正是 PiP 來源分頁則清除追蹤
+chrome.tabs.onRemoved.addListener((tabId) => clearPipTabId(tabId));
