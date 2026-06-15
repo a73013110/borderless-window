@@ -24,8 +24,11 @@
   const RESIZE_DEBOUNCE_MS = 400;
   const COLLAPSE_DELAY_MS = 250;
   const SLIDER_DRAG_RETRY_MS = 200;
-  const HEIGHT_COLLAPSED = "6px";
-  const HEIGHT_EXPANDED = "32px";
+  const HEIGHT_COLLAPSED = "8px";
+  const HEIGHT_EXPANDED = "58px";
+
+  // Apple 風格 spring 緩動（sheet / 控制項常用），略帶過衝的細膩減速感
+  const EASE_SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";
 
   const OPACITY_MIN = 0.05;
   const OPACITY_MAX = 1;
@@ -57,60 +60,134 @@
   ].join("; ");
 
   const TOOLBAR_STYLES = `
-    :host { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
-    .strip {
-      position: absolute; top: 0; left: 0; right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, transparent, rgba(255, 157, 61, 0.32) 50%, transparent);
-      opacity: 0.7;
+    :host {
+      --accent: #ff9d3d;
+      --ease: ${EASE_SPRING};
+      font-family: -apple-system, system-ui, 'Segoe UI', sans-serif;
+    }
+
+    /* 靜止指示器：置中的小握把（grabber），取代全寬細條 */
+    .grabber {
+      position: absolute; top: 3px; left: 50%;
+      width: 34px; height: 4px;
+      margin-left: -17px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.32);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
       pointer-events: none;
-      transition: opacity 0.18s ease;
+      transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
     }
-    .bar {
-      position: absolute; top: 0; left: 0; right: 0;
-      display: flex; align-items: center; gap: 4px;
+    :host(.expanded) .grabber { opacity: 0; transform: translateY(-4px) scaleX(0.6); }
+
+    /* 浮動容器：全寬置中，承載膠囊 */
+    .dock {
+      position: absolute; top: 8px; left: 0; right: 0;
+      display: flex; justify-content: center;
+      pointer-events: none;
+    }
+
+    /* 膠囊本體：vibrancy 毛玻璃材質 */
+    .panel {
+      display: flex; align-items: center; gap: 2px;
       padding: 5px 8px;
-      background: rgba(20, 20, 18, 0.55);
-      backdrop-filter: blur(12px) saturate(140%);
-      -webkit-backdrop-filter: blur(12px) saturate(140%);
-      color: #f3e8d0;
-      font-size: 12px;
+      border-radius: 16px;
+      background: rgba(30, 30, 32, 0.55);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.36),
+        0 2px 8px rgba(0, 0, 0, 0.20),
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.92);
       box-sizing: border-box;
-      transform: translateY(-100%);
-      transition: transform 0.18s ease;
+      pointer-events: auto;
       user-select: none;
+      opacity: 0;
+      transform: translateY(-14px) scale(0.94);
+      transition:
+        opacity 0.28s var(--ease),
+        transform 0.40s var(--ease);
     }
+    :host(.expanded) .panel { opacity: 1; transform: translateY(0) scale(1); }
+
+    /* 內容物錯位浮現（staggered reveal） */
+    .panel > * {
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.26s var(--ease), transform 0.32s var(--ease);
+    }
+    :host(.expanded) .panel > * { opacity: 1; transform: none; }
+    :host(.expanded) .panel > *:nth-child(1) { transition-delay: 0.05s; }
+    :host(.expanded) .panel > *:nth-child(2) { transition-delay: 0.09s; }
+    :host(.expanded) .panel > *:nth-child(3) { transition-delay: 0.13s; }
+    :host(.expanded) .panel > *:nth-child(4) { transition-delay: 0.17s; }
+    :host(.expanded) .panel > *:nth-child(5) { transition-delay: 0.21s; }
+
     .btn {
       all: unset;
       display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px;
-      border-radius: 4px;
-      color: inherit;
+      width: 30px; height: 30px;
+      border-radius: 9px;
+      color: rgba(255, 255, 255, 0.82);
       cursor: pointer;
-      opacity: 0.78;
-      transition: opacity 0.12s, background 0.12s, color 0.12s;
+      transition:
+        background 0.2s var(--ease),
+        color 0.2s var(--ease),
+        transform 0.18s var(--ease);
     }
-    .btn:hover { opacity: 1; background: rgba(255, 157, 61, 0.18); color: #ff9d3d; }
-    .btn:active { transform: translateY(1px); }
-    .btn svg { width: 13px; height: 13px; display: block; }
-    .btn.dim-toggle { margin-left: 4px; }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      transform: scale(1.06);
+    }
+    .btn:active { transform: scale(0.9); }
+    .btn svg { width: 15px; height: 15px; display: block; }
+    .btn.dim-toggle:hover { color: var(--accent); }
+
+    /* 分組分隔線 */
+    .divider {
+      width: 0.5px; height: 18px;
+      margin: 0 5px;
+      background: rgba(255, 255, 255, 0.16);
+      flex: none;
+    }
+
+    /* 精緻 slider（Chrome only — 可放心用 -webkit 偽元素） */
     .slider {
       -webkit-appearance: none; appearance: none;
-      width: 96px; height: 4px;
-      border-radius: 2px;
-      background: rgba(243, 232, 208, 0.22);
+      width: 104px; height: 18px;
+      margin: 0 4px 0 2px;
+      background: transparent;
       cursor: pointer;
-      margin-left: 2px;
+    }
+    .slider::-webkit-slider-runnable-track {
+      height: 4px; border-radius: 3px;
+      background: linear-gradient(
+        90deg,
+        var(--accent) 0 var(--val, 100%),
+        rgba(255, 255, 255, 0.20) var(--val, 100%) 100%
+      );
     }
     .slider::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
-      width: 10px; height: 10px;
+      width: 13px; height: 13px;
+      margin-top: -4.5px;
       border-radius: 50%;
-      background: #ff9d3d;
-      cursor: pointer;
+      background: #fff;
+      box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.45),
+        0 0 0 0.5px rgba(0, 0, 0, 0.12);
+      transition: transform 0.16s var(--ease);
     }
-    :host(.expanded) .bar { transform: translateY(0); }
-    :host(.expanded) .strip { opacity: 0; }
+    .slider:hover::-webkit-slider-thumb { transform: scale(1.18); }
+    .slider:active::-webkit-slider-thumb { transform: scale(1.05); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .grabber, .panel, .panel > *, .btn, .slider::-webkit-slider-thumb {
+        transition-duration: 0.01ms !important;
+      }
+    }
   `;
 
   const PROMPT_STYLES = `
@@ -247,15 +324,22 @@
     }
   }
 
-  // 複製 :root attributes、<head>（除 <script>）與 <base> 到 PiP document
+  // 複製 :root attributes、<head> 樣式節點與 <base> 到 PiP document
   function cloneDocumentChrome(pip) {
     // class、lang、style（CSS 變數常掛在 :root）
     for (const attr of document.documentElement.attributes) {
       pip.document.documentElement.setAttribute(attr.name, attr.value);
     }
-    // <head> 除 <script>（避免重跑時對 stale DOM 引用造成例外）
+    // 只複製「視覺所需」節點：<style> 與 stylesheet/icon/font 類 <link>。
+    // 明確排除：
+    //   - <script>（重跑時引用 stale DOM 會例外）
+    //   - <meta http-equiv="Content-Security-Policy">：新版 Chrome 會在 PiP 視窗
+    //     套用此 CSP，導致 SPA 搬進 PiP 後動態載入的 script chunk 違規被擋，
+    //     進而連鎖觸發 renderer 被殺（RESULT_CODE_KILLED_BAD_MESSAGE）。
+    //   - <link rel="preload"/"modulepreload"/"prefetch"/...>：會在 PiP 內觸發
+    //     腳本/資源載入，同樣撞 CSP。
     for (const node of document.head.children) {
-      if (node.tagName === "SCRIPT") continue;
+      if (!isStyleChrome(node)) continue;
       try { pip.document.head.appendChild(node.cloneNode(true)); } catch {}
     }
     // <base> 讓相對路徑（img src、a href、CSS url()）仍指向原 origin
@@ -264,6 +348,24 @@
       base.href = location.href;
       pip.document.head.prepend(base);
     }
+  }
+
+  // 判斷某 <head> 節點是否為「純視覺」、可安全複製進 PiP 的樣式節點。
+  // 白名單：<style>、<link rel=stylesheet|icon|...icon|preload as=style|font>。
+  // 其餘（script、meta、CSP、preload/modulepreload script、prefetch…）一律排除。
+  function isStyleChrome(node) {
+    const tag = node.tagName;
+    if (tag === "STYLE") return true;
+    if (tag !== "LINK") return false;
+    const rel = (node.getAttribute("rel") || "").toLowerCase();
+    if (rel.includes("stylesheet")) return true;
+    if (rel.includes("icon")) return true;
+    // 只放行明確是樣式/字型的 preload，擋掉 as=script / fetch / document 等
+    if (rel === "preload") {
+      const as = (node.getAttribute("as") || "").toLowerCase();
+      return as === "style" || as === "font";
+    }
+    return false;
   }
 
   // Toolbar 按鈕分派
@@ -295,16 +397,22 @@
     host.style.cssText = HOST_STYLE +
       `; top: 0 !important; left: 0 !important; right: 0 !important` +
       `; height: ${HEIGHT_COLLAPSED} !important` +
-      `; transition: height 0.18s ease !important`;
+      `; transition: height 0.4s ${EASE_SPRING} !important`;
 
     const shadow = host.attachShadow({ mode: "closed" });
     shadow.innerHTML =
-      `<style>${TOOLBAR_STYLES}</style><div class="strip"></div><div class="bar"></div>`;
-    const bar = shadow.querySelector(".bar");
+      `<style>${TOOLBAR_STYLES}</style>` +
+      `<div class="grabber"></div>` +
+      `<div class="dock"><div class="panel"></div></div>`;
+    const panel = shadow.querySelector(".panel");
 
     for (const { i18n: key, icon, action } of TOOLBAR_BUTTONS) {
-      bar.appendChild(makeButton(doc, key, icon, () => onAction(action)));
+      panel.appendChild(makeButton(doc, key, icon, () => onAction(action)));
     }
+
+    const divider = doc.createElement("span");
+    divider.className = "divider";
+    panel.appendChild(divider);
 
     // 內容變淡控制：左側按鈕循環切換背景色（白 ↔ 黑），右側 slider 控制 opacity
     let bgIdx = Math.max(0, BG_PRESETS.indexOf(bgColor));
@@ -313,7 +421,7 @@
       onAction("bg", BG_PRESETS[bgIdx]);
     });
     dimToggle.classList.add("dim-toggle");
-    bar.appendChild(dimToggle);
+    panel.appendChild(dimToggle);
 
     const slider = doc.createElement("input");
     slider.type = "range";
@@ -323,8 +431,18 @@
     slider.step = String(OPACITY_STEP);
     slider.value = String(opacity);
     slider.title = i18n("pipOpacityLabel");
-    slider.addEventListener("input", () => onAction("opacity", Number(slider.value)));
-    bar.appendChild(slider);
+    // slider 軌道填色：把目前值映射成百分比寫進 --val
+    const syncFill = (v) => {
+      const pct = ((v - OPACITY_MIN) / (OPACITY_MAX - OPACITY_MIN)) * 100;
+      slider.style.setProperty("--val", `${pct}%`);
+    };
+    syncFill(opacity);
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      syncFill(v);
+      onAction("opacity", v);
+    });
+    panel.appendChild(slider);
 
     // 拖曳 slider 時可能滑出 host 範圍，需延後折回直到拖曳結束
     let sliderDragging = false;
