@@ -8,8 +8,9 @@ chrome.runtime.onInstalled.addListener(() => {
     const modes = [
       [CONTEXT_MENU_CLONE_ID, "contextMenuModeClone", NON_LINK_CONTEXTS],
       [CONTEXT_MENU_MOVE_ID,  "contextMenuModeMove",  NON_LINK_CONTEXTS],
-      [CONTEXT_MENU_NEW_ID,   "contextMenuModeNew",   ["all"]],
-      [CONTEXT_MENU_PIP_ID,   "contextMenuClickPip",  NON_LINK_CONTEXTS]
+      [CONTEXT_MENU_NEW_ID,      "contextMenuModeNew",   ["all"]],
+      [CONTEXT_MENU_PIP_ID,      "contextMenuClickPip",  NON_LINK_CONTEXTS],
+      [CONTEXT_MENU_PIP_PICK_ID, "contextMenuPipPick",   NON_LINK_CONTEXTS]
     ];
     for (const [id, key, contexts] of modes) {
       chrome.contextMenus.create({ id, title: getMessage(key), contexts });
@@ -58,6 +59,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     case CONTEXT_MENU_MOVE_ID:      return dispatchOpen(tab, { forceMode: "move" });
     case CONTEXT_MENU_NEW_ID:       return dispatchOpen(tab, { forceMode: "new" });
     case CONTEXT_MENU_PIP_ID:       return dispatchOpen(tab, { forceMode: "pip" });
+    case CONTEXT_MENU_PIP_PICK_ID:  return tryEnterPip(tab, { mode: "picker" });
     case CONTEXT_MENU_INCOGNITO_ID: return dispatchOpen(tab, { incognito: true });
   }
 });
@@ -82,12 +84,23 @@ const dispatchOpen = async (tab, { incognito = false, forceMode } = {}) => {
   }
 };
 
-// 注入 PiP 腳本；無法注入（chrome://、設定頁等）時 fallback 為 popup
-const tryEnterPip = async (tab) => {
+// 注入 PiP 腳本；無法注入（chrome://、設定頁等）時 fallback 為 popup。
+// mode "picker" 額外注入取景器，並在注入前把模式寫進頁面供 inject.js 讀取。
+const tryEnterPip = async (tab, { mode = "body" } = {}) => {
+  const target = { tabId: tab.id };
   try {
+    if (mode === "picker") {
+      await chrome.scripting.executeScript({
+        target,
+        func: (m) => { window.__NEWTAB_PIP_MODE = m; },
+        args: ["picker"]
+      });
+    }
     await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["js/pip/inject.js"]
+      target,
+      files: mode === "picker"
+        ? ["js/pip/picker.js", "js/pip/inject.js"]
+        : ["js/pip/inject.js"]
     });
   } catch {
     notify(getMessage("pipInjectBlocked"));

@@ -23,6 +23,9 @@
     "contextMenuClickPip": {
         "message": "Picture-in-Picture (Beta)"
     },
+    "contextMenuPipPick": {
+        "message": "Picture-in-Picture (pick element)"
+    },
     "contextMenuClickIncognito": {
         "message": "Open in incognito window"
     },
@@ -52,6 +55,9 @@
     },
     "pipClickToStart": {
         "message": "Click to start Picture-in-Picture"
+    },
+    "pickerHint": {
+        "message": "Click an element to pop out · ↑↓ adjust range · Esc to cancel"
     },
     "htmlLang": {
         "message": "en"

@@ -23,6 +23,9 @@
     "contextMenuClickPip": {
         "message": "子母畫面（Beta）"
     },
+    "contextMenuPipPick": {
+        "message": "子母畫面（指定元素）"
+    },
     "contextMenuClickIncognito": {
         "message": "無痕視窗開啟"
     },
@@ -52,6 +55,9 @@
     },
     "pipClickToStart": {
         "message": "點此啟動子母畫面"
+    },
+    "pickerHint": {
+        "message": "點選要浮出的元素 · ↑↓ 調整範圍 · Esc 取消"
     },
     "htmlLang": {
         "message": "zh-TW"

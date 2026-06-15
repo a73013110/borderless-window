@@ -9,6 +9,7 @@ const CONTEXT_MENU_CLONE_ID = "newTabWindowMenuItemClone";
 const CONTEXT_MENU_MOVE_ID = "newTabWindowMenuItemMove";
 const CONTEXT_MENU_NEW_ID = "newTabWindowMenuItemNew";
 const CONTEXT_MENU_PIP_ID = "newTabWindowMenuItemPip";
+const CONTEXT_MENU_PIP_PICK_ID = "newTabWindowMenuItemPipPick";
 const CONTEXT_MENU_INCOGNITO_ID = "newTabWindowMenuItemIncognito";
 const CONTEXT_MENU_RESTORE_ID = "newTabWindowMenuItemRestore";
 const SEP_RESTORE_ID = "newTabWindowMenuSepRestore";

@@ -244,21 +244,28 @@
 
   // ─── Entry ────────────────────────────────────────────────────────
   (async () => {
+    // 模式由 background 在注入前寫入頁面（picker = 元素級 pop-out）；讀取後即清除
+    const mode = window.__NEWTAB_PIP_MODE;
+    delete window.__NEWTAB_PIP_MODE;
+
     const prev = window[STATE_KEY];
-    if (prev) { prev.dismiss(); return; }
+    if (prev) { prev.dismiss(); return; } // 再次觸發 = 收起（涵蓋 pip / prompt / picker）
 
     if (!("documentPictureInPicture" in window)) {
       sendBg({ type: "pipFallback", error: "documentPictureInPicture unavailable" });
       return;
     }
 
+    if (mode === "picker") return startPicker();
+
     const result = await openPip();
     if (result === "needs_gesture") showPrompt();
   })();
 
-  // 嘗試開啟 PiP — 回傳 "ok" | "needs_gesture" | "failed"
+  // 嘗試開啟整頁 PiP — 回傳 "ok" | "needs_gesture" | "failed"
   async function openPip() {
     const size = await readPipSize();
+    const content = await readContentSettings();
     let pip;
     try {
       pip = await documentPictureInPicture.requestWindow(size);
@@ -268,14 +275,51 @@
       sendBg({ type: "pipFallback", error: e?.message || String(e) });
       return "failed";
     }
-    setupPip(pip);
+    setupPip(pip, document.body, content);
     return "ok";
   }
 
-  // ─── PiP setup（body 搬移 + toolbar 掛載 + resize 自動存檔） ────────
-  async function setupPip(pip) {
-    const originalBody = document.body;
-    const placeholder = document.createElement("body");
+  // ─── 元素級 pop-out（picker 模式） ─────────────────────────────────
+  // gesture 命脈：尺寸/設定必須在進取景模式前讀好，點擊 handler 內不可再 await。
+  async function startPicker() {
+    if (!window.__NewtabPipPicker) {
+      // picker.js 未一起注入時，退回整頁 PiP，至少不失能
+      const result = await openPip();
+      if (result === "needs_gesture") showPrompt();
+      return;
+    }
+    const size = await readPipSize();
+    const content = await readContentSettings();
+    const handle = window.__NewtabPipPicker.start(
+      {
+        hint: i18n("pickerHint"),
+        accent: "#ff9d3d",
+        // 取景器任何收尾路徑（Esc / cancel / 選取）都清掉 picker 狀態，避免卡死後續觸發
+        onClose: () => { if (window[STATE_KEY]?.kind === "picker") window[STATE_KEY] = null; }
+      },
+      (el) => openPipWithElement(el, size, content)
+    );
+    window[STATE_KEY] = { kind: "picker", dismiss: () => handle.cancel() };
+  }
+
+  // 於 picker 的點擊 handler 內「同步」呼叫 —— requestWindow 必須吃到這個 gesture
+  function openPipWithElement(el, size, content) {
+    window[STATE_KEY] = null; // picker 已收尾，交棒給 PiP（失敗時保持 null 以便重試）
+    documentPictureInPicture.requestWindow(size)
+      .then((pip) => setupPip(pip, el, content))
+      .catch((e) => {
+        console.warn("[PiP] requestWindow failed", e);
+        sendBg({ type: "pipFallback", error: e?.message || String(e) });
+      });
+  }
+
+  // ─── PiP setup（目標節點搬移 + toolbar 掛載 + resize 自動存檔） ──────
+  // target 為整頁（document.body）或 picker 選中的元素；兩者共用同一套
+  // placeholder 換位 → 搬入 PiP → 還原 的生命週期，差異僅在於掛載方式。
+  function setupPip(pip, target, content) {
+    const isBody = target === document.body;
+    const parent = target.parentNode;
+    const placeholder = document.createElement(isBody ? "body" : "div");
     let toolbarHost = null;
     let restored = false;
 
@@ -284,8 +328,8 @@
       if (restored) return;
       restored = true;
       toolbarHost?.remove();
-      if (placeholder.parentNode) placeholder.replaceWith(originalBody);
-      originalBody.style.opacity = "";
+      if (placeholder.parentNode) placeholder.replaceWith(target);
+      target.style.opacity = "";
       if (window[STATE_KEY]?.kind === "pip") window[STATE_KEY] = null;
     };
     pip.addEventListener("pagehide", restore, { once: true });
@@ -297,21 +341,25 @@
     };
 
     try {
-      const { opacity, bgColor } = await readContentSettings();
       cloneDocumentChrome(pip);
 
-      // 搬移 body：placeholder 佔位於原頁面，真 body 接到 PiP
-      document.documentElement.replaceChild(placeholder, originalBody);
-      pip.document.body.replaceWith(originalBody);
+      // 搬移目標：placeholder 佔位於原頁面，目標節點接到 PiP
+      parent.replaceChild(placeholder, target);
+      if (isBody) {
+        pip.document.body.replaceWith(target);  // 整頁：目標即成為 PiP 的 body
+      } else {
+        pip.document.body.style.margin = "0";
+        pip.document.body.appendChild(target);  // 元素：掛進 PiP 預設 body 內
+      }
 
-      // html 背景：內容透過 body opacity 變淡時，透出的就是這個顏色
-      pip.document.documentElement.style.backgroundColor = bgColor;
+      // html 背景：內容透過 opacity 變淡時，透出的就是這個顏色
+      pip.document.documentElement.style.backgroundColor = content.bgColor;
 
-      toolbarHost = createToolbar(pip, { opacity, bgColor }, (action, value) =>
-        handleAction({ pip, action, value, body: originalBody })
+      toolbarHost = createToolbar(pip, content, (action, value) =>
+        handleAction({ pip, action, value, el: target })
       );
-      originalBody.prepend(toolbarHost);
-      originalBody.style.opacity = String(opacity);
+      (isBody ? target : pip.document.body).prepend(toolbarHost);
+      target.style.opacity = String(content.opacity);
 
       // PiP 視窗大小調整 → 自動寫回 storage.sync（debounce 避免拖曳中狂寫）
       pip.addEventListener("resize", debounce(() => {
@@ -369,7 +417,7 @@
   }
 
   // Toolbar 按鈕分派
-  function handleAction({ pip, action, value, body }) {
+  function handleAction({ pip, action, value, el }) {
     switch (action) {
       case "openInNewTab":
         sendBg({ type: "pipOpenInNewTab", url: location.href });
@@ -380,7 +428,7 @@
         pip.close();
         return;
       case "opacity":
-        body.style.opacity = String(value);
+        el.style.opacity = String(value);
         chrome.storage.local.set({ pipOpacity: value });
         return;
       case "bg":
@@ -423,37 +471,9 @@
     dimToggle.classList.add("dim-toggle");
     panel.appendChild(dimToggle);
 
-    const slider = doc.createElement("input");
-    slider.type = "range";
-    slider.className = "slider";
-    slider.min = String(OPACITY_MIN);
-    slider.max = String(OPACITY_MAX);
-    slider.step = String(OPACITY_STEP);
-    slider.value = String(opacity);
-    slider.title = i18n("pipOpacityLabel");
-    // slider 軌道填色：把目前值映射成百分比寫進 --val
-    const syncFill = (v) => {
-      const pct = ((v - OPACITY_MIN) / (OPACITY_MAX - OPACITY_MIN)) * 100;
-      slider.style.setProperty("--val", `${pct}%`);
-    };
-    syncFill(opacity);
-    slider.addEventListener("input", () => {
-      const v = Number(slider.value);
-      syncFill(v);
-      onAction("opacity", v);
-    });
+    // 內容透明度 slider（自帶軌道填色與拖曳狀態）
+    const { el: slider, isDragging } = makeSlider(doc, opacity, (v) => onAction("opacity", v));
     panel.appendChild(slider);
-
-    // 拖曳 slider 時可能滑出 host 範圍，需延後折回直到拖曳結束
-    let sliderDragging = false;
-    slider.addEventListener("pointerdown", (e) => {
-      sliderDragging = true;
-      e.target.setPointerCapture?.(e.pointerId);
-    });
-    const stopDrag = () => { sliderDragging = false; };
-    slider.addEventListener("pointerup", stopDrag);
-    slider.addEventListener("pointercancel", stopDrag);
-    slider.addEventListener("lostpointercapture", stopDrag);
 
     let collapseTimer;
     const setExpanded = (on) => {
@@ -462,7 +482,7 @@
       host.classList.toggle("expanded", on);
     };
     const tryCollapse = () => {
-      if (sliderDragging) {
+      if (isDragging()) {
         collapseTimer = setTimeout(tryCollapse, SLIDER_DRAG_RETRY_MS);
         return;
       }
@@ -487,6 +507,44 @@
     btn.innerHTML = ICONS[iconKey];
     btn.addEventListener("click", onClick);
     return btn;
+  }
+
+  // 內容透明度 slider：建立元素、軌道填色與拖曳狀態於一處。
+  // 回傳 { el, isDragging }；isDragging 供 toolbar 判斷拖曳中不可折回。
+  function makeSlider(doc, opacity, onInput) {
+    const slider = doc.createElement("input");
+    slider.type = "range";
+    slider.className = "slider";
+    slider.min = String(OPACITY_MIN);
+    slider.max = String(OPACITY_MAX);
+    slider.step = String(OPACITY_STEP);
+    slider.value = String(opacity);
+    slider.title = i18n("pipOpacityLabel");
+
+    // 軌道填色：把目前值映射成百分比寫進 --val
+    const syncFill = (v) => {
+      const pct = ((v - OPACITY_MIN) / (OPACITY_MAX - OPACITY_MIN)) * 100;
+      slider.style.setProperty("--val", `${pct}%`);
+    };
+    syncFill(opacity);
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      syncFill(v);
+      onInput(v);
+    });
+
+    // 拖曳 slider 時指標可能滑出 host 範圍，需延後折回直到拖曳結束
+    let dragging = false;
+    slider.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      e.target.setPointerCapture?.(e.pointerId);
+    });
+    const stop = () => { dragging = false; };
+    slider.addEventListener("pointerup", stop);
+    slider.addEventListener("pointercancel", stop);
+    slider.addEventListener("lostpointercapture", stop);
+
+    return { el: slider, isDragging: () => dragging };
   }
 
   // ─── Prompt（無 user activation 時的點擊提示） ───────────────────
